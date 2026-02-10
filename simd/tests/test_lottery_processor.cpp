@@ -30,11 +30,7 @@ std::string generateRandomPlay() {
 TEST(LotteryProcessorTest, CountsMatches) {
     LotteryProcessor lp;
 
-#ifdef ENABLE_SOA
     PlayersInfo data;
-#else
-    std::vector<PlayerInfo> data;
-#endif
     
     PlayerInfo play1;
     Utils::SetPlayToMask({1, 2, 3, 4, 5}, play1.play_mask); // 5 matches
@@ -45,18 +41,12 @@ TEST(LotteryProcessorTest, CountsMatches) {
     PlayerInfo play3;
     Utils::SetPlayToMask({10, 20, 30, 40, 50}, play3.play_mask); // 0 matches
 
-#ifdef ENABLE_SOA
     data.player_id.emplace_back(play1.player_id);
     data.play_mask.emplace_back(play1.play_mask);
     data.player_id.emplace_back(play2.player_id);
     data.play_mask.emplace_back(play2.play_mask);
     data.player_id.emplace_back(play3.player_id);
     data.play_mask.emplace_back(play3.play_mask);
-#else
-    data.emplace_back(play1);
-    data.emplace_back(play2);
-    data.emplace_back(play3);
-#endif
 
     testing::internal::CaptureStdout();
     lp.Process(data, {1, 2, 3, 4, 5});
@@ -98,16 +88,10 @@ TEST(LotteryProcessorTest, ValidatingProcessingTimeWith1MPlays) {
 
     // Calculate 90th percentile
     uint64_t percentile90 = perfTimes.size() * 90 / 100;
-
-#ifdef ENABLE_SOA
-    std::cout << "Processing time for 1 million plays (Structure of Arrays): " 
+    
+    std::cout << "Processing time for 1 million plays (SIMD): " 
               << "p50 (" << perfTimes[percentile50] << " us) " 
               << "p90 (" << perfTimes[percentile90] << " us)" << std::endl;
-#else
-    std::cout << "Processing time for 1 million plays (Array of Structures): " 
-              << "p50 (" << perfTimes[percentile50] << " us) " 
-              << "p90 (" << perfTimes[percentile90] << " us)" << std::endl;
-#endif
     EXPECT_LT(perfTimes[percentile90], 10'000); // Expect processing to be under 10 milliseconds
 
     // Clean up temporary file

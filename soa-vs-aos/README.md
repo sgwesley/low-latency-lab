@@ -1,4 +1,4 @@
-# soa-vs-aos ✅
+# SoA vs AoS ✅
 
 ## Overview
 
@@ -116,7 +116,7 @@ READY
 
 ### Processing time with 1 million plays
 
-The unit test `ValidatingProcessingTimeWith1MPlays` measures processing time for 1 million lottery entries and prints the elapsed time in microseconds for the **90th percentile** over multiple runs.
+The unit test `ValidatingProcessingTimeWith1MPlays` measures processing time for 1 million lottery entries and prints the elapsed time in microseconds for the **50th percentile** and **90th percentile** over multiple runs.
 
 **Array of Structures (AoS)**
 
@@ -129,8 +129,8 @@ Output snippet:
 ```
 [ RUN      ] LotteryProcessorTest.ValidatingProcessingTimeWith1MPlays
 ...
-Processing time for 1 million plays: 3322 us
-[       OK ] LotteryProcessorTest.ValidatingProcessingTimeWith1MPlays (8712 ms)
+Processing time for 1 million plays (Array of Structures): p50 (2195 us) p90 (2995 us)
+[       OK ] LotteryProcessorTest.ValidatingProcessingTimeWith1MPlays (8341 ms)
 ```
 
 **Structure of Arrays (SoA)**
@@ -144,8 +144,8 @@ Output snippet:
 ```
 [ RUN      ] LotteryProcessorTest.ValidatingProcessingTimeWith1MPlays
 ...
-Processing time for 1 million plays (with Structure of Arrays): 3201 us
-[       OK ] LotteryProcessorTest.ValidatingProcessingTimeWith1MPlays (8268 ms)
+Processing time for 1 million plays (Structure of Arrays): p50 (2025 us) p90 (2738 us)
+[       OK ] LotteryProcessorTest.ValidatingProcessingTimeWith1MPlays (8137 ms)
 ```
 
 **Outcome:** The SoA implementation again shows a performance improvement, with a lower processing time for the same workload.
