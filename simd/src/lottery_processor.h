@@ -68,24 +68,35 @@ private:
         // AVX2: process 4 x 64-bit masks in parallel
         const size_t vectorSize = 4;
         __m256i pickedVec = _mm256_set1_epi64x(pickedNumMask);
-        
+
+        // Lookup table for 4-bit popcount
+        const __m256i lut = _mm256_setr_epi8(
+            0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,
+            0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4
+        );
+        const __m256i lowMask = _mm256_set1_epi8(0x0F);
+        const __m256i zero = _mm256_setzero_si256();
+
         size_t i = start;
-        
+
         // Process in chunks of 4 with AVX2
         for (; i + vectorSize <= end; i += vectorSize) {
             __m256i plays = _mm256_loadu_si256((__m256i*)&data.play_mask[i]);
             __m256i result = _mm256_and_si256(plays, pickedVec);
-            
-            // Extract and popcount each 64-bit lane
-            uint64_t lane0 = (uint64_t)_mm256_extract_epi64(result, 0);
-            uint64_t lane1 = (uint64_t)_mm256_extract_epi64(result, 1);
-            uint64_t lane2 = (uint64_t)_mm256_extract_epi64(result, 2);
-            uint64_t lane3 = (uint64_t)_mm256_extract_epi64(result, 3);
-            
-            counter.winners[__builtin_popcountll(lane0)]++;
-            counter.winners[__builtin_popcountll(lane1)]++;
-            counter.winners[__builtin_popcountll(lane2)]++;
-            counter.winners[__builtin_popcountll(lane3)]++;
+
+            // Popcount each byte with lookup + shuffle, then sum per 64-bit lane
+            __m256i lo = _mm256_and_si256(result, lowMask);
+            __m256i hi = _mm256_and_si256(_mm256_srli_epi16(result, 4), lowMask);
+            __m256i pop8 = _mm256_add_epi8(
+                _mm256_shuffle_epi8(lut, lo),
+                _mm256_shuffle_epi8(lut, hi)
+            );
+            __m256i sum64 = _mm256_sad_epu8(pop8, zero); // 4 x 64-bit sums
+
+            counter.winners[static_cast<int>(_mm256_extract_epi64(sum64, 0))]++;
+            counter.winners[static_cast<int>(_mm256_extract_epi64(sum64, 1))]++;
+            counter.winners[static_cast<int>(_mm256_extract_epi64(sum64, 2))]++;
+            counter.winners[static_cast<int>(_mm256_extract_epi64(sum64, 3))]++;
         }
         
         // Handle remainder with scalar code

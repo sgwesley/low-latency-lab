@@ -8,12 +8,10 @@
 #include "../src/lottery_processor.h"
 #include "../src/lottery_input_reader.h"
 
-std::string generateRandomPlay() {
+std::string generateRandomPlay(std::mt19937& rng) {
     std::string play;
     std::set<int> numbers;
 
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    std::mt19937 rng(seed);
     std::uniform_int_distribution<int> dist(1, 60);
     while (numbers.size() < 5) {
         numbers.insert(dist(rng));
@@ -61,16 +59,19 @@ TEST(LotteryProcessorTest, ValidatingProcessingTimeWith1MPlays) {
     std::ofstream ofs(tmpPath);
     ASSERT_TRUE(ofs.is_open());
     std::cout << "Creating 1 million plays for performance test..." << std::endl;
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::mt19937 rng(seed);
     for (size_t i = 0; i < 1'000'000; ++i) {
-        ofs << generateRandomPlay() << std::endl;
+        ofs << generateRandomPlay(rng) << std::endl;
     }
     std::cout << "Temporary file created." << std::endl;
 
     LotteryProcessor lp;
-    LotteryInputReader reader(tmpPath);
+    LotteryInputReader reader(tmpPath);    
     ASSERT_TRUE(reader.Read());
     
     // Measure processing time over 1000 iterations to get a reliable performance metric
+    testing::internal::CaptureStdout();
     std::vector<uint64_t> perfTimes;
     for (size_t i = 0; i < 1000; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -94,6 +95,8 @@ TEST(LotteryProcessorTest, ValidatingProcessingTimeWith1MPlays) {
               << "p90 (" << perfTimes[percentile90] << " us)" << std::endl;
     EXPECT_LT(perfTimes[percentile90], 10'000); // Expect processing to be under 10 milliseconds
 
+    std::cout << testing::internal::GetCapturedStdout();
+    
     // Clean up temporary file
     std::remove(tmpPath.c_str());
 }

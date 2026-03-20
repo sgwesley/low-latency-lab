@@ -50,20 +50,27 @@ The unit test `ValidatingProcessingTimeWith1MPlays` measures processing time for
 After building **SoA-vs-AoS** with the `-march=native` optimization flag, the output on each run is as follows:
 
 ```
-Processing time for 1 million plays (Array of Structures): p50 (1524 us) p90 (2313 us)
-Processing time for 1 million plays (Structure of Arrays): p50 (1218 us) p90 (1945 us)
+Processing time for 1 million plays (Array of Structures): p50 (1015 us) p90 (1172 us)
+Processing time for 1 million plays (Structure of Arrays): p50 (913 us) p90 (1042 us)
 ```
 
 Now, compare this with the output using SIMD optimizations, compiled with the same `-march=native` flag:
 
 ```
-Processing time for 1 million plays (SIMD): p50 (1208 us) p90 (1942 us)
+Processing time for 1 million plays (SIMD): p50 (786 us) p90 (924 us)
 ```
 
-**Conclusion:** GCC does a wonderful job. For this specific workload, when using the -march=native flag, the performance difference between a manual SIMD implementation and a Structure of Arrays approach becomes minimal. This is due to the compiler's ability to automatically vectorize the SoA loop. This works well because:
-- The data layout is cache friendly, with contiguous and homogeneous arrays
-- The CPU supports vector instructions such as AVX2
-- The compiler can safely and aggressively apply SIMD transformations
+Note that actual times may vary based on the machine and its current load. In this case, the machine was only running the benchmark and had no other significant background processes.
+
+**Conclusion:** After implementing the AND operation and popcount approach using AVX2 (128 bit SIMD instructions), I saw a measurable improvement:
+- around 14% reduction in p50 latency
+- around 12% reduction in p90 latency
+
+Not massive, but real and consistent.
+
+Lessons learned:
+1. Without measurement, we are just guessing.
+2. If you are iterating over contiguous memory and not getting the expected results from auto vectorization, it is worth exploring SIMD.
 
 ---
 
